@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: chrony-tracker
+  labels:
+    app: chrony-monitor
+spec:
+  selector:
+    matchLabels:
+      app: chrony-monitor
+  template:
+    metadata:
+      labels:
+        app: chrony-monitor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        runAsNonRoot: true
+      containers:
+        - name: chrony-monitor
+          image: <chrony-image>
+          command: ["/bin/sh", "-c", "/app/entrypoint.sh"]
+          securityContext:
+            readOnlyRootFilesystem: true
+          ports:
+            - containerPort: 9100
+              name: metrics
+          env:
+            - name: SLEEP_INTERVAL
+              value: "30"
+          volumeMounts:
+            - name: chrony-socket
+              mountPath: /run/chrony 
+      volumes:
+        - name: chrony-socket
+          hostPath:
+            path: /run/chrony
+            type: Directory
